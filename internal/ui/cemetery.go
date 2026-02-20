@@ -151,36 +151,17 @@ func (m Model) View() string {
 	if len(m.souls) == 0 {
 		sb.WriteString(dimStyle.Render("SCANNING FOR SOULS...") + "\n")
 	} else {
-		// Calculate column widths based on total width
-		pidW := 8
-		sinW := 10
-		burdenW := 10
-		nameW := m.width - pidW - sinW - burdenW - 10
-		if nameW < 10 { nameW = 10 }
-
-		headStr := fmt.Sprintf("%-*s %-*s %-*s %-*s", pidW, "SOUL ID", nameW, "NAME", sinW, "SIN (CPU)", burdenW, "BURDEN")
-		sb.WriteString(dimStyle.Render(headStr) + "\n")
+		// Fixed column widths for stability
+		sb.WriteString(dimStyle.Render(fmt.Sprintf("%-8s %-20s %-10s %-10s", "SOUL ID", "NAME", "SIN", "BURDEN")) + "\n")
 		
-		// Calculate display limit based on terminal height
-		// Header(1) + Spacer(1) + Subheader(1) + List + Confirm/Help(2) + Border(2)
-		displayHeight := m.height - 8
-		if displayHeight < 5 { displayHeight = 5 }
-
 		start := 0
-		if m.cursor > displayHeight/2 {
-			start = m.cursor - displayHeight/2
-		}
-		end := start + displayHeight
-		if end > len(m.souls) {
-			end = len(m.souls)
-			start = end - displayHeight
-			if start < 0 { start = 0 }
-		}
+		if m.cursor > 10 { start = m.cursor - 10 }
+		end := start + 15
+		if end > len(m.souls) { end = len(m.souls) }
 
 		for i := start; i < end; i++ {
 			s := m.souls[i]
-			formatStr := fmt.Sprintf("%%-%dd %%-%d.%ds %%-%d.1f%%%% %%-%ds", pidW, nameW, nameW, sinW-1, burdenW)
-			line := fmt.Sprintf(formatStr, s.PID, s.Name, s.CPU, formatBytes(s.Memory))
+			line := fmt.Sprintf("%-8d %-20.20s %-10.1f%% %-10s", s.PID, s.Name, s.CPU, formatBytes(s.Memory))
 			
 			style := textStyle
 			if s.CPU > 50 || s.Memory > 1024*1024*500 {
@@ -202,7 +183,5 @@ func (m Model) View() string {
 		sb.WriteString("\n" + dimStyle.Render("J/K: NAVIGATE • ENTER: BURY • Q: EXIT"))
 	}
 
-	// Apply screen border and force it to fill most of the space
-	res := screenStyle.Width(m.width - 4).Height(m.height - 2).Render(sb.String())
-	return res
+	return screenStyle.Render(sb.String())
 }
