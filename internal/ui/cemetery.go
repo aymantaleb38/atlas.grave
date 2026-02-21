@@ -7,6 +7,7 @@ import (
 
 	"atlas.grave/internal/model"
 	"atlas.grave/internal/system"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -43,22 +44,31 @@ type state int
 const (
 	stateBrowsing state = iota
 	stateConfirming
+	stateSearching
 )
 
 type Model struct {
-	reaper   *system.Reaper
-	souls    []model.Soul
-	cursor   int
-	width    int
-	height   int
-	state    state
-	reclaimed uint64
+	reaper        *system.Reaper
+	souls         []model.Soul
+	filtered      []model.Soul
+	cursor        int
+	width         int
+	height        int
+	state         state
+	reclaimed     uint64
+	input         textinput.Model
 }
 
 func NewModel(r *system.Reaper) Model {
+	ti := textinput.New()
+	ti.Placeholder = "TYPE TO SEARCH..."
+	ti.Prompt = " > "
+	ti.TextStyle = textStyle
+
 	return Model{
 		reaper: r,
 		souls:  []model.Soul{},
+		input:  ti,
 	}
 }
 
@@ -83,13 +93,26 @@ func tick() tea.Cmd {
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if m.state == stateSearching {
+			switch msg.String() {
+			case "enter", "esc":
+				m.state = stateBrowsing
+				return m, nil
+			}
+			m.input, cmd = m.input.Update(msg)
+			m.filterSouls()
+			return m, cmd
+		}
+
 		if m.state == stateConfirming {
 			switch msg.String() {
 			case "y", "Y":
-				if len(m.souls) > 0 && m.cursor < len(m.souls) {
-					soul := m.souls[m.cursor]
+				if len(m.filtered) > 0 && m.cursor < len(m.filtered) {
+					soul := m.filtered[m.cursor]
 					m.reclaimed += soul.Memory
 					m.reaper.Bury(soul.PID)
 				}
@@ -107,17 +130,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "up", "k":
 			if m.cursor > 0 { m.cursor-- }
 		case "down", "j":
-			if m.cursor < len(m.souls)-1 { m.cursor++ }
+			if m.cursor < len(m.filtered)-1 { m.cursor++ }
+		case "pgup":
+			m.cursor -= 10
+			if m.cursor < 0 { m.cursor = 0 }
+		case "pgdown":
+			m.cursor += 10
+			if m.cursor >= len(m.filtered) { m.cursor = len(m.filtered)-1 }
+		case "/", "s":
+			m.state = stateSearching
+			m.input.Focus()
+			return m, nil
 		case "enter", "b":
-			if len(m.souls) > 0 {
+			if len(m.filtered) > 0 {
 				m.state = stateConfirming
 			}
 		}
 
 	case scanMsg:
 		m.souls = msg
-		if m.cursor >= len(m.souls) && len(m.souls) > 0 {
-			m.cursor = len(m.souls)-1
+		m.filterSouls()
+		if m.cursor >= len(m.filtered) && len(m.filtered) > 0 {
+			m.cursor = len(m.filtered)-1
 		}
 	case tickMsg:
 		if m.state == stateBrowsing {
@@ -128,6 +162,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = msg.Width, msg.Height
 	}
 	return m, nil
+}
+
+func (m *Model) filterSouls() {
+	query := strings.ToLower(m.input.Value())
+	if query == "" {
+		m.filtered = m.souls
+		return
+	}
+
+	var filtered []model.Soul
+	for _, s := range m.souls {
+		if strings.Contains(strings.ToLower(s.Name), query) || strings.Contains(fmt.Sprintf("%d", s.PID), query) {
+			filtered = append(filtered, s)
+		}
+	}
+	m.filtered = filtered
 }
 
 func formatBytes(b uint64) string {
@@ -148,19 +198,23 @@ func (m Model) View() string {
 	header := headerStyle.Render(" ATLAS REAPER 3000 ") + " " + textStyle.Render(fmt.Sprintf("RECLAIMED: %s", formatBytes(m.reclaimed)))
 	sb.WriteString(header + "\n\n")
 
-	if len(m.souls) == 0 {
-		sb.WriteString(dimStyle.Render("SCANNING FOR SOULS...") + "\n")
+	if m.state == stateSearching {
+		sb.WriteString(headerStyle.Render(" SEARCH DATABASE ") + "\n")
+		sb.WriteString(m.input.View() + "\n\n")
+	}
+
+	if len(m.filtered) == 0 {
+		sb.WriteString(dimStyle.Render("NO RESTLESS SOULS FOUND.") + "\n")
 	} else {
-		// Fixed column widths for stability
 		sb.WriteString(dimStyle.Render(fmt.Sprintf("%-8s %-20s %-10s %-10s", "SOUL ID", "NAME", "SIN", "BURDEN")) + "\n")
 		
 		start := 0
 		if m.cursor > 10 { start = m.cursor - 10 }
 		end := start + 15
-		if end > len(m.souls) { end = len(m.souls) }
+		if end > len(m.filtered) { end = len(m.filtered) }
 
 		for i := start; i < end; i++ {
-			s := m.souls[i]
+			s := m.filtered[i]
 			line := fmt.Sprintf("%-8d %-20.20s %-10.1f%% %-10s", s.PID, s.Name, s.CPU, formatBytes(s.Memory))
 			
 			style := textStyle
@@ -176,11 +230,11 @@ func (m Model) View() string {
 		}
 	}
 
-	if m.state == stateConfirming && len(m.souls) > 0 {
-		target := m.souls[m.cursor]
+	if m.state == stateConfirming && len(m.filtered) > 0 {
+		target := m.filtered[m.cursor]
 		sb.WriteString("\n" + restlessStyle.Render(fmt.Sprintf("BURY SOUL %s (PID %d)? (y/n)", target.Name, target.PID)))
-	} else {
-		sb.WriteString("\n" + dimStyle.Render("J/K: NAVIGATE • ENTER: BURY • Q: EXIT"))
+	} else if m.state != stateSearching {
+		sb.WriteString("\n" + dimStyle.Render("J/K: NAVIGATE • PGUP/PGDN: SPEED • /: SEARCH • ENTER: BURY"))
 	}
 
 	return screenStyle.Render(sb.String())
