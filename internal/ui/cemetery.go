@@ -19,7 +19,7 @@ var (
 	onyx   = lipgloss.Color("#050505")
 
 	screenStyle = lipgloss.NewStyle().
-			Padding(1, 2).
+			Padding(2, 4).
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(amber).
 			Background(onyx)
@@ -206,16 +206,17 @@ func (m Model) View() string {
 	if len(m.filtered) == 0 {
 		sb.WriteString(dimStyle.Render("NO RESTLESS SOULS FOUND.") + "\n")
 	} else {
-		sb.WriteString(dimStyle.Render(fmt.Sprintf("%-8s %-20s %-10s %-10s", "SOUL ID", "NAME", "SIN", "BURDEN")) + "\n")
+		sb.WriteString(dimStyle.Render(fmt.Sprintf("%-8s %-30s %-10s %-15s", "SOUL ID", "NAME", "SIN", "BURDEN")) + "\n")
 		
 		start := 0
-		if m.cursor > 10 { start = m.cursor - 10 }
-		end := start + 15
+		if m.cursor > 15 { start = m.cursor - 15 }
+		end := start + 25
 		if end > len(m.filtered) { end = len(m.filtered) }
 
 		for i := start; i < end; i++ {
 			s := m.filtered[i]
-			line := fmt.Sprintf("%-8d %-20.20s %-10.1f%% %-10s", s.PID, s.Name, s.CPU, formatBytes(s.Memory))
+			cpuStr := fmt.Sprintf("%.1f%%", s.CPU)
+			line := fmt.Sprintf("%-8d %-30.30s %-10s %-15s", s.PID, s.Name, cpuStr, formatBytes(s.Memory))
 			
 			style := textStyle
 			if s.CPU > 50 || s.Memory > 1024*1024*500 {
